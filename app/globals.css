@@ -153,7 +153,12 @@ body {
 
 .hr-captcha,
 .hr-captcha * {
-  font-family: initial;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: normal;
+  text-transform: none;
+  font-style: normal;
+  text-shadow: none;
+  font-variant: normal;
 }
 
 .hr-captchaOverlay {
@@ -197,9 +202,8 @@ body {
 
 .hr-captchaHeaderText strong {
   font-size: clamp(1.1rem, 3.4vw, 1.58rem);
-  line-height: 1;
+  line-height: 1.15;
   font-weight: 700;
-  letter-spacing: 0.015em;
 }
 
 .hr-captchaThumbWrap {
@@ -226,8 +230,6 @@ body {
   margin: 0;
   font-size: 0.66rem;
   color: rgb(68 79 95 / 92%);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .hr-captchaPrompt {
@@ -246,13 +248,6 @@ body {
   aspect-ratio: 1.22 / 1;
 }
 
-.hr-captchaImage {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
 .hr-captchaGrid {
   position: absolute;
   inset: 0;
@@ -262,19 +257,54 @@ body {
 }
 
 .hr-captchaTile {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
   border: 2px solid rgb(255 255 255 / 92%);
-  background: rgb(42 106 203 / 0%);
+  background: transparent;
   cursor: pointer;
-  transition: background-color 130ms ease, box-shadow 130ms ease;
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 130ms ease;
 }
 
 .hr-captchaTile:hover {
-  background: rgb(17 104 234 / 18%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 55%);
+}
+
+.hr-captchaTileImage {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  transform-origin: center;
+  transition: transform 140ms ease;
+}
+
+.hr-captchaTile:focus,
+.hr-captchaTile:active,
+.hr-captchaTile:focus-visible {
+  outline: none;
+  background: transparent;
 }
 
 .hr-captchaTile.is-selected {
-  background: rgb(26 115 232 / 42%);
-  box-shadow: inset 0 0 0 2px rgb(19 85 175 / 62%);
+  background: transparent;
+  border-width: 1px;
+  border-color: rgb(255 255 255 / 70%);
+  box-shadow: none;
+}
+
+.hr-captchaTile.is-selected:hover {
+  box-shadow: none;
+}
+
+.hr-captchaTile.is-selected .hr-captchaTileImage {
+  transform: scale(0.84);
 }
 
 .hr-captchaError {
@@ -319,9 +349,7 @@ body {
   padding: 0.68rem 0.86rem;
   background: #1a73e8;
   color: #fff;
-  text-transform: uppercase;
   font-weight: 600;
-  letter-spacing: 0.05em;
   font-size: 0.88rem;
   cursor: pointer;
 }

@@ -57,12 +57,23 @@ const CAPTCHA_STEPS: CaptchaStep[] = [
   { src: "/captcha3.png", prompt: "Select the tiles with traffic lights" },
 ];
 
-function randomCaptchaMask() {
-  return Math.floor(Math.random() * 4);
-}
-
 function randomCaptchaStep() {
   return CAPTCHA_STEPS[Math.floor(Math.random() * CAPTCHA_STEPS.length)];
+}
+
+const CAPTCHA_FORBIDDEN_TILE_BY_SRC: Record<string, number> = {
+  // Values are zero-based tile indices for matrix:
+  // row1: 1 2 -> indices 0,1
+  // row2: 3 4 -> indices 2,3
+  "/captcha1.png": 2,
+  "/captcha2.png": 2,
+  "/captcha3.png": 1,
+};
+
+function randomCaptchaTargetForStep(step: CaptchaStep) {
+  const forbidden = CAPTCHA_FORBIDDEN_TILE_BY_SRC[step.src];
+  const allowed = [0, 1, 2, 3].filter((tile) => tile !== forbidden);
+  return allowed[Math.floor(Math.random() * allowed.length)] ?? 0;
 }
 
 function buildWorker() {
@@ -487,13 +498,20 @@ export function HyperResolveConsole() {
       return;
     }
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    shouldAutoScrollRef.current = distanceFromBottom <= 28;
+    shouldAutoScrollRef.current = distanceFromBottom <= 96;
   }, []);
 
   useEffect(() => {
     if (!terminalRef.current) {
       return;
     }
+    const distanceFromBottom =
+      terminalRef.current.scrollHeight - terminalRef.current.scrollTop - terminalRef.current.clientHeight;
+
+    if (distanceFromBottom <= 96) {
+      shouldAutoScrollRef.current = true;
+    }
+
     if (!shouldAutoScrollRef.current) {
       return;
     }
@@ -505,12 +523,16 @@ export function HyperResolveConsole() {
   }, [equations]);
 
   useEffect(() => {
+    if (!captchaPassed) {
+      return;
+    }
+
     loadLaplaceGif();
 
     return () => {
       laplaceGifRef.current = null;
     };
-  }, [loadLaplaceGif]);
+  }, [captchaPassed, loadLaplaceGif]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -638,6 +660,10 @@ export function HyperResolveConsole() {
   }, []);
 
   useEffect(() => {
+    if (!captchaPassed) {
+      return;
+    }
+
     const worker = buildWorker();
     workerRef.current = worker;
 
@@ -677,7 +703,7 @@ export function HyperResolveConsole() {
       worker.terminate();
       workerRef.current = null;
     };
-  }, [pushEquation, stopComputing]);
+  }, [captchaPassed, pushEquation, stopComputing]);
 
   useEffect(() => {
     if (!hasRuntime) {
@@ -1136,9 +1162,10 @@ export function HyperResolveConsole() {
     setActiveModes(["montecarlo"]);
     setEquations(["[READY] Awaiting impossible question..."]);
     setCaptchaActive(true);
-    setCaptchaStep(randomCaptchaStep());
+    const nextStep = randomCaptchaStep();
+    setCaptchaStep(nextStep);
     setCaptchaSelection(null);
-    setCaptchaTarget(randomCaptchaMask());
+    setCaptchaTarget(randomCaptchaTargetForStep(nextStep));
     setCaptchaError("");
     setCaptchaPassed(false);
   }, [stopComputing]);
@@ -1204,11 +1231,12 @@ export function HyperResolveConsole() {
   );
 
   const startCaptchaFlow = useCallback(() => {
+    const nextStep = randomCaptchaStep();
     setCaptchaActive(true);
     setCaptchaPassed(false);
-    setCaptchaStep(randomCaptchaStep());
+    setCaptchaStep(nextStep);
     setCaptchaSelection(null);
-    setCaptchaTarget(randomCaptchaMask());
+    setCaptchaTarget(randomCaptchaTargetForStep(nextStep));
     setCaptchaError("");
   }, []);
 
@@ -1257,7 +1285,6 @@ export function HyperResolveConsole() {
     if (!matchesTarget) {
       setCaptchaError("The reCAPTCHA was invalid. Try Again.");
       setCaptchaSelection(null);
-      setCaptchaTarget(randomCaptchaMask());
       return;
     }
 
@@ -1426,19 +1453,33 @@ export function HyperResolveConsole() {
                 <p className="hr-captchaPrompt">{captchaStep.prompt}</p>
 
                 <div className="hr-captchaImageFrame" role="group" aria-label={captchaStep.prompt}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={captchaStep.src} alt="Captcha" className="hr-captchaImage" draggable={false} />
                   <div className="hr-captchaGrid" aria-hidden="true">
-                    {[0, 1, 2, 3].map((tileIndex) => (
-                      <button
-                        key={`tile-${tileIndex}`}
-                        type="button"
-                        className={`hr-captchaTile ${captchaSelection === tileIndex ? "is-selected" : ""}`}
-                        onClick={() => toggleCaptchaTile(tileIndex)}
-                        aria-pressed={captchaSelection === tileIndex}
-                        aria-label={`Tile ${tileIndex + 1}`}
-                      />
-                    ))}
+                    {[0, 1, 2, 3].map((tileIndex) => {
+                      const col = tileIndex % 2;
+                      const row = Math.floor(tileIndex / 2);
+                      const xPos = col === 0 ? "0%" : "100%";
+                      const yPos = row === 0 ? "0%" : "100%";
+
+                      return (
+                        <button
+                          key={`tile-${tileIndex}`}
+                          type="button"
+                          className={`hr-captchaTile ${captchaSelection === tileIndex ? "is-selected" : ""}`}
+                          onClick={() => toggleCaptchaTile(tileIndex)}
+                          aria-pressed={captchaSelection === tileIndex}
+                          aria-label={`Tile ${tileIndex + 1}`}
+                        >
+                          <span
+                            className="hr-captchaTileImage"
+                            style={{
+                              backgroundImage: `url(${captchaStep.src})`,
+                              backgroundSize: "200% 200%",
+                              backgroundPosition: `${xPos} ${yPos}`,
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
