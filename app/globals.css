@@ -141,6 +141,234 @@ body {
   gap: 0.55rem;
 }
 
+.hr-captcha {
+  margin-top: 0;
+  border-radius: 0.15rem;
+  overflow: hidden;
+  border: 1px solid #cfd5dd;
+  background: #eceff3;
+  width: min(640px, calc(100vw - 2.5rem));
+  box-shadow: 0 8px 34px rgb(0 0 0 / 28%);
+}
+
+.hr-captcha,
+.hr-captcha * {
+  font-family: initial;
+}
+
+.hr-captchaOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(2 8 18 / 58%);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.hr-captchaModal {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.hr-captchaHeader {
+  background: #1a73e8;
+  color: #fff;
+  padding: 0.7rem;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.hr-captchaHeaderText {
+  display: grid;
+  align-content: center;
+  gap: 0.18rem;
+}
+
+.hr-captchaHeaderText p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: rgb(241 248 255 / 96%);
+}
+
+.hr-captchaHeaderText strong {
+  font-size: clamp(1.1rem, 3.4vw, 1.58rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.hr-captchaThumbWrap {
+  width: 98px;
+  min-width: 98px;
+  border: 2px solid rgb(255 255 255 / 86%);
+  background: #fff;
+}
+
+.hr-captchaThumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.hr-captchaBody {
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.hr-captchaStep {
+  margin: 0;
+  font-size: 0.66rem;
+  color: rgb(68 79 95 / 92%);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hr-captchaPrompt {
+  margin: 0;
+  color: rgb(53 63 79 / 96%);
+  font-size: 0.8rem;
+}
+
+.hr-captchaImageFrame {
+  position: relative;
+  border: 1px solid #c8cdd6;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+  width: 100%;
+  aspect-ratio: 1.22 / 1;
+}
+
+.hr-captchaImage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.hr-captchaGrid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.hr-captchaTile {
+  border: 2px solid rgb(255 255 255 / 92%);
+  background: rgb(42 106 203 / 0%);
+  cursor: pointer;
+  transition: background-color 130ms ease, box-shadow 130ms ease;
+}
+
+.hr-captchaTile:hover {
+  background: rgb(17 104 234 / 18%);
+}
+
+.hr-captchaTile.is-selected {
+  background: rgb(26 115 232 / 42%);
+  box-shadow: inset 0 0 0 2px rgb(19 85 175 / 62%);
+}
+
+.hr-captchaError {
+  margin: 0;
+  color: #d93025;
+  font-size: 0.82rem;
+}
+
+.hr-captchaFooter {
+  margin-top: 0.15rem;
+  border-top: 1px solid #d3d8e1;
+  padding-top: 0.48rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.hr-captchaFooterIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #6c7078;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.hr-captchaFooterIcons span:last-child {
+  width: 31px;
+  height: 31px;
+  border: 2px solid #777c84;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.2rem;
+}
+
+.hr-captchaVerifyButton {
+  border: none;
+  border-radius: 0.2rem;
+  min-width: 130px;
+  padding: 0.68rem 0.86rem;
+  background: #1a73e8;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.hr-feedLine {
+  margin: 0;
+  color: rgb(186 247 238 / 88%);
+  font-size: 0.84rem;
+  line-height: 1.42;
+  white-space: pre-wrap;
+}
+
+.hr-captchaVerifyButton:hover {
+  filter: brightness(1.06);
+}
+
+@media (max-width: 640px) {
+  .hr-captcha {
+    width: min(640px, calc(100vw - 1.2rem));
+  }
+
+  .hr-captchaHeader {
+    padding: 0.55rem;
+    gap: 0.45rem;
+  }
+
+  .hr-captchaHeaderText p {
+    font-size: 0.78rem;
+  }
+
+  .hr-captchaThumbWrap {
+    width: 76px;
+    min-width: 76px;
+  }
+
+  .hr-captchaFooterIcons {
+    font-size: 1.45rem;
+    gap: 0.45rem;
+  }
+
+  .hr-captchaVerifyButton {
+    min-width: 112px;
+    padding: 0.62rem 0.76rem;
+    font-size: 0.78rem;
+  }
+}
+
 .hr-label {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
@@ -270,14 +498,6 @@ body {
 
 .hr-feedScroll::-webkit-scrollbar-track {
   background: rgb(0 0 0 / 30%);
-}
-
-.hr-feed p {
-  margin: 0;
-  color: rgb(186 247 238 / 88%);
-  font-size: 0.84rem;
-  line-height: 1.48;
-  white-space: pre-wrap;
 }
 
 .hr-error {

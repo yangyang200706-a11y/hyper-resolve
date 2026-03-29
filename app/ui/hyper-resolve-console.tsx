@@ -7,6 +7,10 @@ type EngineState = "idle" | "computing" | "resolved" | "blocked";
 type AnimationMode = "montecarlo" | "linear" | "surface" | "laplace";
 type Point = { x: number; y: number };
 type MonteCarloPoint = { x: number; y: number; inside: boolean };
+type CaptchaStep = {
+  src: string;
+  prompt: string;
+};
 
 type WorkerMessage = {
   type: "heartbeat" | "done";
@@ -46,6 +50,20 @@ const MODE_EQUATIONS: Record<AnimationMode, string> = {
   surface: "[MODE] Integral_S F . dS over parameterized surface z = sin(x)+cos(y)",
   laplace: "[MODE] F(s) = 1 / (s^2 + 0.8s + 1.2), visualizing |F(s)| in complex plane",
 };
+
+const CAPTCHA_STEPS: CaptchaStep[] = [
+  { src: "/captcha1.png", prompt: "Select the tiles with motorcycles" },
+  { src: "/captcha2.png", prompt: "Select the tiles with cars" },
+  { src: "/captcha3.png", prompt: "Select the tiles with traffic lights" },
+];
+
+function randomCaptchaMask() {
+  return Math.floor(Math.random() * 4);
+}
+
+function randomCaptchaStep() {
+  return CAPTCHA_STEPS[Math.floor(Math.random() * CAPTCHA_STEPS.length)];
+}
 
 function buildWorker() {
   const workerScript = `
@@ -399,12 +417,17 @@ export function HyperResolveConsole() {
   const [monteCarloPoints, setMonteCarloPoints] = useState<MonteCarloPoint[]>([]);
   const [activeModes, setActiveModes] = useState<AnimationMode[]>(["montecarlo"]);
   const [laplaceGifSrc, setLaplaceGifSrc] = useState("");
+  const [captchaActive, setCaptchaActive] = useState(true);
+  const [captchaStep, setCaptchaStep] = useState<CaptchaStep>(CAPTCHA_STEPS[0]);
+  const [captchaSelection, setCaptchaSelection] = useState<number | null>(null);
+  const [captchaTarget, setCaptchaTarget] = useState(0);
+  const [captchaError, setCaptchaError] = useState("");
+  const [captchaPassed, setCaptchaPassed] = useState(false);
   const reduceMotion = useReducedMotion();
 
   const trimmedQuestion = question.trim();
   const hasRuntime = state !== "idle";
   const canStart = isWebGLReady && state !== "computing" && state !== "blocked";
-
   useEffect(() => {
     computeActiveRef.current = state === "computing";
   }, [state]);
@@ -412,8 +435,8 @@ export function HyperResolveConsole() {
   const pushEquation = useCallback((line: string) => {
     setEquations((prev) => {
       const next = [...prev, line];
-      if (next.length > 44) {
-        return next.slice(next.length - 44);
+      if (next.length > 600) {
+        return next.slice(next.length - 600);
       }
       return next;
     });
@@ -465,10 +488,6 @@ export function HyperResolveConsole() {
     }
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     shouldAutoScrollRef.current = distanceFromBottom <= 28;
-  }, []);
-
-  const handleTerminalManualControl = useCallback(() => {
-    shouldAutoScrollRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -1116,11 +1135,15 @@ export function HyperResolveConsole() {
     setMonteCarloPoints([]);
     setActiveModes(["montecarlo"]);
     setEquations(["[READY] Awaiting impossible question..."]);
+    setCaptchaActive(true);
+    setCaptchaStep(randomCaptchaStep());
+    setCaptchaSelection(null);
+    setCaptchaTarget(randomCaptchaMask());
+    setCaptchaError("");
+    setCaptchaPassed(false);
   }, [stopComputing]);
 
-  const startCompute = useCallback(
-    (event: FormEvent) => {
-      event.preventDefault();
+  const runCompute = useCallback(() => {
       if (!canStart || !workerRef.current) {
         return;
       }
@@ -1180,6 +1203,69 @@ export function HyperResolveConsole() {
     [canStart, clearTimers, loadLaplaceGif, pushEquation, registerMode, stopComputing, trimmedQuestion],
   );
 
+  const startCaptchaFlow = useCallback(() => {
+    setCaptchaActive(true);
+    setCaptchaPassed(false);
+    setCaptchaStep(randomCaptchaStep());
+    setCaptchaSelection(null);
+    setCaptchaTarget(randomCaptchaMask());
+    setCaptchaError("");
+  }, []);
+
+  useEffect(() => {
+    startCaptchaFlow();
+  }, [startCaptchaFlow]);
+
+  const toggleCaptchaTile = useCallback((tileIndex: number) => {
+    setCaptchaSelection(tileIndex);
+  }, []);
+
+  const submitQuestion = useCallback(
+    (event: FormEvent) => {
+      event.preventDefault();
+      if (!canStart || !workerRef.current) {
+        return;
+      }
+
+      if (!captchaActive && !captchaPassed) {
+        startCaptchaFlow();
+        return;
+      }
+
+      if (captchaActive) {
+        return;
+      }
+
+      runCompute();
+    },
+    [
+      canStart,
+      captchaActive,
+      captchaPassed,
+      runCompute,
+      startCaptchaFlow,
+    ],
+  );
+
+  const verifyCaptcha = useCallback(() => {
+    if (!captchaActive) {
+      return;
+    }
+
+    const matchesTarget = captchaSelection === captchaTarget;
+
+    if (!matchesTarget) {
+      setCaptchaError("The reCAPTCHA was invalid. Try Again.");
+      setCaptchaSelection(null);
+      setCaptchaTarget(randomCaptchaMask());
+      return;
+    }
+
+    setCaptchaActive(false);
+    setCaptchaPassed(true);
+    setCaptchaError("");
+  }, [captchaActive, captchaSelection, captchaTarget]);
+
   return (
     <div className={`hr-shell ${!hasRuntime ? "hr-shell-idle" : ""}`}>
       <canvas ref={canvasRef} className="hr-canvas" aria-hidden="true" />
@@ -1199,25 +1285,29 @@ export function HyperResolveConsole() {
               <p className="hr-subtitle">Predict the Future</p>
             </div>
 
-            <form className="hr-form" onSubmit={startCompute}>
-              <label htmlFor="question" className="hr-label">
-                Ask any question
-              </label>
-              <div className="hr-inputRow">
-                <input
-                  id="question"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="hr-input"
-                  placeholder="Will it rain today?"
-                  autoComplete="off"
-                  maxLength={180}
-                />
-                <button type="submit" className="hr-button" disabled={!canStart}>
-                  Compute
-                </button>
-              </div>
-            </form>
+            {captchaPassed ? (
+              <form className="hr-form" onSubmit={submitQuestion}>
+                <label htmlFor="question" className="hr-label">
+                  Ask any question
+                </label>
+                <div className="hr-inputRow">
+                  <input
+                    id="question"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    className="hr-input"
+                    placeholder="Will it rain today?"
+                    autoComplete="off"
+                    maxLength={180}
+                  />
+                  <button type="submit" className="hr-button" disabled={!canStart}>
+                    Compute
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="hr-label">Complete the captcha to unlock question input.</p>
+            )}
           </section>
         )}
 
@@ -1286,19 +1376,11 @@ export function HyperResolveConsole() {
                   ref={terminalRef}
                   className="hr-feedScroll"
                   onScroll={handleTerminalScroll}
-                  onWheel={handleTerminalManualControl}
-                  onTouchStart={handleTerminalManualControl}
-                  onMouseDown={handleTerminalManualControl}
                 >
                   {equations.map((line, index) => (
-                    <motion.p
-                      key={`${line}-${index}`}
-                      initial={reduceMotion ? false : { opacity: 0, y: 7 }}
-                      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                    >
+                    <p key={`${line}-${index}`} className="hr-feedLine">
                       {line}
-                    </motion.p>
+                    </p>
                   ))}
                 </div>
               </section>
@@ -1319,6 +1401,64 @@ export function HyperResolveConsole() {
           <p className="hr-error">WebGL is required for this edition. Enable hardware acceleration and retry.</p>
         )}
       </motion.main>
+
+      {captchaActive && (
+        <section className="hr-captchaOverlay" aria-live="polite">
+          <div className="hr-captchaModal" role="dialog" aria-modal="true" aria-label="Captcha verification">
+            <section className="hr-captcha">
+              <div className="hr-captchaHeader">
+                <div className="hr-captchaHeaderText">
+                  <p>Select all squares with</p>
+                  <strong>{captchaStep.prompt.replace("Select the tiles with ", "")}</strong>
+                </div>
+                <div className="hr-captchaThumbWrap">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={captchaStep.src}
+                    alt="Captcha reference"
+                    className="hr-captchaThumb"
+                    draggable={false}
+                  />
+                </div>
+              </div>
+              <div className="hr-captchaBody">
+                <p className="hr-captchaStep">Captcha Verification</p>
+                <p className="hr-captchaPrompt">{captchaStep.prompt}</p>
+
+                <div className="hr-captchaImageFrame" role="group" aria-label={captchaStep.prompt}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={captchaStep.src} alt="Captcha" className="hr-captchaImage" draggable={false} />
+                  <div className="hr-captchaGrid" aria-hidden="true">
+                    {[0, 1, 2, 3].map((tileIndex) => (
+                      <button
+                        key={`tile-${tileIndex}`}
+                        type="button"
+                        className={`hr-captchaTile ${captchaSelection === tileIndex ? "is-selected" : ""}`}
+                        onClick={() => toggleCaptchaTile(tileIndex)}
+                        aria-pressed={captchaSelection === tileIndex}
+                        aria-label={`Tile ${tileIndex + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {captchaError && <p className="hr-captchaError">{captchaError}</p>}
+
+                <div className="hr-captchaFooter">
+                  <div className="hr-captchaFooterIcons" aria-hidden="true">
+                    <span>↻</span>
+                    <span>♪</span>
+                    <span>i</span>
+                  </div>
+                  <button type="button" className="hr-captchaVerifyButton" onClick={verifyCaptcha}>
+                    Verify
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
