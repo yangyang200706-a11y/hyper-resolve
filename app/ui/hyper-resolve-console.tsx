@@ -369,7 +369,11 @@ function shuffleModes(seed: number): AnimationMode[] {
 export function HyperResolveConsole() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationStageRef = useRef<HTMLDivElement | null>(null);
+  const laplaceGifRef = useRef<HTMLImageElement | null>(null);
+  const laplaceGifSrcRef = useRef("");
   const terminalRef = useRef<HTMLDivElement | null>(null);
+  const shouldAutoScrollRef = useRef(true);
   const workerRef = useRef<Worker | null>(null);
   const frameRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -394,6 +398,7 @@ export function HyperResolveConsole() {
   const [brownianPoints, setBrownianPoints] = useState<Point[]>([]);
   const [monteCarloPoints, setMonteCarloPoints] = useState<MonteCarloPoint[]>([]);
   const [activeModes, setActiveModes] = useState<AnimationMode[]>(["montecarlo"]);
+  const [laplaceGifSrc, setLaplaceGifSrc] = useState("");
   const reduceMotion = useReducedMotion();
 
   const trimmedQuestion = question.trim();
@@ -444,8 +449,33 @@ export function HyperResolveConsole() {
     [pushEquation],
   );
 
+  const loadLaplaceGif = useCallback(() => {
+    const src = `/laplace.gif?rev=${Date.now()}`;
+    const image = new Image();
+    image.src = src;
+    laplaceGifRef.current = image;
+    laplaceGifSrcRef.current = src;
+    setLaplaceGifSrc(src);
+  }, []);
+
+  const handleTerminalScroll = useCallback(() => {
+    const el = terminalRef.current;
+    if (!el) {
+      return;
+    }
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom <= 28;
+  }, []);
+
+  const handleTerminalManualControl = useCallback(() => {
+    shouldAutoScrollRef.current = false;
+  }, []);
+
   useEffect(() => {
     if (!terminalRef.current) {
+      return;
+    }
+    if (!shouldAutoScrollRef.current) {
       return;
     }
     window.requestAnimationFrame(() => {
@@ -454,6 +484,14 @@ export function HyperResolveConsole() {
       }
     });
   }, [equations]);
+
+  useEffect(() => {
+    loadLaplaceGif();
+
+    return () => {
+      laplaceGifRef.current = null;
+    };
+  }, [loadLaplaceGif]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -967,6 +1005,19 @@ export function HyperResolveConsole() {
         ctx.stroke();
       };
 
+      const drawLaplaceGif = (x0: number, y0: number, w: number, h: number) => {
+        // Render a backdrop in canvas; the animated GIF is layered as a DOM image for reliable animation.
+        ctx.fillStyle = "rgba(8, 16, 24, 0.85)";
+        ctx.fillRect(x0, y0, w, h);
+        ctx.strokeStyle = "rgba(126, 225, 241, 0.28)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0, w, h);
+
+        if (!laplaceGifSrcRef.current) {
+          drawLaplace3D(x0, y0, w, h);
+        }
+      };
+
       const count = Math.max(1, activeModes.length);
       const cols = count === 1 ? 1 : 2;
       const rows = Math.ceil(count / 2);
@@ -1025,7 +1076,7 @@ export function HyperResolveConsole() {
           drawSurface(mode, clipX, clipY + 18, clipW, clipH - 20);
         }
         if (mode === "laplace") {
-          drawLaplace3D(clipX, clipY + 18, clipW, clipH - 20);
+          drawLaplaceGif(clipX, clipY + 18, clipW, clipH - 20);
         }
         ctx.restore();
 
@@ -1050,6 +1101,7 @@ export function HyperResolveConsole() {
 
   const resetToIdle = useCallback(() => {
     stopComputing();
+    shouldAutoScrollRef.current = true;
     setQuestion("");
     setAskedQuestion("");
     setState("idle");
@@ -1073,6 +1125,8 @@ export function HyperResolveConsole() {
         return;
       }
 
+      shouldAutoScrollRef.current = true;
+      loadLaplaceGif();
       seedRef.current = Math.random();
       const modeOrder = shuffleModes(seedRef.current);
       let modeIndex = 0;
@@ -1123,7 +1177,7 @@ export function HyperResolveConsole() {
         pushEquation("[RESOLVE] Complex-plane consensus still converges to maybe.");
       }, durationMs);
     },
-    [canStart, clearTimers, pushEquation, registerMode, stopComputing, trimmedQuestion],
+    [canStart, clearTimers, loadLaplaceGif, pushEquation, registerMode, stopComputing, trimmedQuestion],
   );
 
   return (
@@ -1139,7 +1193,7 @@ export function HyperResolveConsole() {
       >
         {!hasRuntime && (
           <section className="hr-top">
-            <p className="hr-chip">Overengineered Decision Engine v2</p>
+            <p className="hr-chip">Hyper-Optimized Quantum Decision Engine v3</p>
             <div className="hr-hero">
               <h1 className="hr-title">HyperResolve</h1>
               <p className="hr-subtitle">Predict the Future</p>
@@ -1177,24 +1231,65 @@ export function HyperResolveConsole() {
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
               <div className="hr-runtimeHeader">
-                <p className="hr-questionLine">Question: {askedQuestion}</p>
-                <p className="hr-analysisLine">Analysis...</p>
+                <p className="hr-questionLine">{askedQuestion}</p>
               </div>
 
               <section className="hr-graphWrap" aria-label="Animation Window">
                 <div className="hr-graphHeader">
-                  <span>Animation Window: {activeModes.length} active stream{activeModes.length > 1 ? "s" : ""}</span>
+                  <span>Active Streams: {activeModes.length}</span>
                   <span>
                     load {Math.round(progress * 100)}% | cycles {cycles.toLocaleString()} | samples {sampleCount.toLocaleString()} | sigma_B {brownianSigma.toFixed(3)}
                   </span>
                   <span>I ≈ {mcEstimate.toFixed(6)}</span>
                 </div>
-                <canvas ref={animationCanvasRef} className="hr-animCanvas" aria-label="Mathematical animation window" />
+                <div ref={animationStageRef} className="hr-animStage">
+                  <canvas ref={animationCanvasRef} className="hr-animCanvas" aria-label="Mathematical animation window" />
+                  {(() => {
+                    const count = Math.max(1, activeModes.length);
+                    const cols = count === 1 ? 1 : 2;
+                    const rows = Math.ceil(count / 2);
+                    const laplaceIndex = activeModes.indexOf("laplace");
+
+                    if (laplaceIndex < 0 || !laplaceGifSrc) {
+                      return null;
+                    }
+
+                    const col = laplaceIndex % cols;
+                    const row = Math.floor(laplaceIndex / cols);
+
+                    const widthExpr = cols === 1 ? "calc(100% - 16px)" : "calc((100% - 24px) / 2)";
+                    const heightExpr = rows === 1 ? "calc(100% - 16px)" : "calc((100% - 24px) / 2)";
+                    const leftExpr = col === 0 ? "8px" : "calc(16px + ((100% - 24px) / 2))";
+                    const topExpr = row === 0 ? "8px" : "calc(16px + ((100% - 24px) / 2))";
+
+                    return (
+                      <div
+                        className="hr-laplaceGifTile"
+                        style={{
+                          left: leftExpr,
+                          top: topExpr,
+                          width: widthExpr,
+                          height: heightExpr,
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={laplaceGifSrc} alt="Laplace animation" className="hr-laplaceGif" draggable={false} />
+                      </div>
+                    );
+                  })()}
+                </div>
               </section>
 
               <section className="hr-feed" aria-label="Equation stream">
                 <h2 className="hr-feedTitle">Terminal</h2>
-                <div ref={terminalRef} className="hr-feedScroll">
+                <div
+                  ref={terminalRef}
+                  className="hr-feedScroll"
+                  onScroll={handleTerminalScroll}
+                  onWheel={handleTerminalManualControl}
+                  onTouchStart={handleTerminalManualControl}
+                  onMouseDown={handleTerminalManualControl}
+                >
                   {equations.map((line, index) => (
                     <motion.p
                       key={`${line}-${index}`}
@@ -1210,7 +1305,7 @@ export function HyperResolveConsole() {
 
               {state === "resolved" && (
                 <div className="hr-resultRow">
-                  <p className="hr-answerBar">Answer: Maybe</p>
+                  <p className="hr-answerBar">Answer: Unsure</p>
                   <button type="button" className="hr-againButton" onClick={resetToIdle}>
                     Ask another question
                   </button>

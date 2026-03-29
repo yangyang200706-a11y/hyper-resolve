@@ -222,18 +222,11 @@ body {
 
 .hr-questionLine {
   margin: 0;
-  color: rgb(216 249 255 / 93%);
-  font-size: 0.83rem;
-  letter-spacing: 0.03em;
-}
-
-.hr-analysisLine {
-  margin: 0.3rem 0 0;
+  color: rgb(224 252 255 / 97%);
   font-family: var(--font-orbitron), sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 0.78rem;
-  color: rgb(133 241 231 / 92%);
+  font-size: clamp(1rem, 2.1vw, 1.45rem);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
 }
 
 .hr-feed {
@@ -321,6 +314,36 @@ body {
   background: rgb(1 7 16 / 90%);
 }
 
+.hr-animStage {
+  position: relative;
+  width: 100%;
+  height: clamp(200px, 34vh, 360px);
+}
+
+.hr-animStage .hr-animCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hr-laplaceGifTile {
+  position: absolute;
+  border: 1px solid rgb(126 225 241 / 26%);
+  border-radius: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hr-laplaceGif {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+}
+
 .hr-resultRow {
   margin-top: 0.1rem;
   display: flex;
@@ -400,6 +423,10 @@ body {
   }
 
   .hr-animCanvas {
+    height: clamp(170px, 29vh, 260px);
+  }
+
+  .hr-animStage {
     height: clamp(170px, 29vh, 260px);
   }
 
