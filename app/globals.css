@@ -218,6 +218,8 @@ body {
   height: 100%;
   display: block;
   object-fit: cover;
+  transform-origin: center;
+  transition: transform 180ms ease;
 }
 
 .hr-captchaBody {
@@ -254,6 +256,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+  transform-origin: center;
+  transition: transform 180ms ease;
 }
 
 .hr-captchaTile {
@@ -294,8 +298,8 @@ body {
 
 .hr-captchaTile.is-selected {
   background: transparent;
-  border-width: 1px;
-  border-color: rgb(255 255 255 / 70%);
+  border-width: 0.5px;
+  border-color: rgb(255 255 255 / 72%);
   box-shadow: none;
 }
 
@@ -304,7 +308,7 @@ body {
 }
 
 .hr-captchaTile.is-selected .hr-captchaTileImage {
-  transform: scale(0.84);
+  transform: scale(0.93);
 }
 
 .hr-captchaError {
@@ -330,6 +334,24 @@ body {
   color: #6c7078;
   font-size: 1.8rem;
   line-height: 1;
+}
+
+.hr-captchaRotateButton {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hr-captchaRotateGlyph {
+  display: inline-block;
+  transform-origin: center;
+  transition: transform 180ms ease;
 }
 
 .hr-captchaFooterIcons span:last-child {

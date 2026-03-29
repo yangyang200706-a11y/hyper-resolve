@@ -434,6 +434,7 @@ export function HyperResolveConsole() {
   const [captchaTarget, setCaptchaTarget] = useState(0);
   const [captchaError, setCaptchaError] = useState("");
   const [captchaPassed, setCaptchaPassed] = useState(false);
+  const [captchaRotation, setCaptchaRotation] = useState(0);
   const reduceMotion = useReducedMotion();
 
   const trimmedQuestion = question.trim();
@@ -1168,6 +1169,7 @@ export function HyperResolveConsole() {
     setCaptchaTarget(randomCaptchaTargetForStep(nextStep));
     setCaptchaError("");
     setCaptchaPassed(false);
+    setCaptchaRotation(0);
   }, [stopComputing]);
 
   const runCompute = useCallback(() => {
@@ -1238,6 +1240,11 @@ export function HyperResolveConsole() {
     setCaptchaSelection(null);
     setCaptchaTarget(randomCaptchaTargetForStep(nextStep));
     setCaptchaError("");
+    setCaptchaRotation(0);
+  }, []);
+
+  const rotateCaptcha = useCallback(() => {
+    setCaptchaRotation((prev) => (prev + 90) % 360);
   }, []);
 
   useEffect(() => {
@@ -1445,6 +1452,7 @@ export function HyperResolveConsole() {
                     alt="Captcha reference"
                     className="hr-captchaThumb"
                     draggable={false}
+                    style={{ transform: `rotate(${captchaRotation}deg)` }}
                   />
                 </div>
               </div>
@@ -1453,7 +1461,7 @@ export function HyperResolveConsole() {
                 <p className="hr-captchaPrompt">{captchaStep.prompt}</p>
 
                 <div className="hr-captchaImageFrame" role="group" aria-label={captchaStep.prompt}>
-                  <div className="hr-captchaGrid" aria-hidden="true">
+                  <div className="hr-captchaGrid" aria-hidden="true" style={{ transform: `rotate(${captchaRotation}deg)` }}>
                     {[0, 1, 2, 3].map((tileIndex) => {
                       const col = tileIndex % 2;
                       const row = Math.floor(tileIndex / 2);
@@ -1486,8 +1494,17 @@ export function HyperResolveConsole() {
                 {captchaError && <p className="hr-captchaError">{captchaError}</p>}
 
                 <div className="hr-captchaFooter">
-                  <div className="hr-captchaFooterIcons" aria-hidden="true">
-                    <span>↻</span>
+                  <div className="hr-captchaFooterIcons">
+                    <button
+                      type="button"
+                      className="hr-captchaRotateButton"
+                      onClick={rotateCaptcha}
+                      aria-label="Rotate captcha image"
+                    >
+                      <span className="hr-captchaRotateGlyph" style={{ transform: `rotate(${captchaRotation}deg)` }}>
+                        ↻
+                      </span>
+                    </button>
                     <span>♪</span>
                     <span>i</span>
                   </div>
